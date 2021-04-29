@@ -1,0 +1,179 @@
+package client;
+
+import com.proto.hello.*;
+import io.grpc.ManagedChannel;
+import io.grpc.ManagedChannelBuilder;
+import io.grpc.stub.StreamObserver;
+import javafx.event.ActionEvent;
+
+import javax.swing.*;
+import java.awt.print.Book;
+import java.sql.Array;
+import java.util.Arrays;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+
+public class HelloClient {
+
+    public static void main(String[] args) {
+        System.out.println("Welcome to Amazonas Hospital!");
+
+        HelloClient main = new HelloClient();
+        main.run();
+
+    }
+
+    private void run() {
+        ManagedChannel channel = ManagedChannelBuilder.forAddress("localhost", 50051)
+                .usePlaintext()
+                .build();
+
+        ClientStreamingCall(channel);
+        BidirectionalStreamingCall(channel);
+
+        //shutting down my channel
+        System.out.println("Shutting down channel");
+        channel.shutdown();
+    }
+
+
+    private void ClientStreamingCall(ManagedChannel channel) {
+
+        String [] options = {"Yes, please.", "No, I'm ok now."};
+        int x = JOptionPane.showOptionDialog(null, "Do you want to check the Operations Room availability?", "Operation Room",
+                JOptionPane.DEFAULT_OPTION, JOptionPane.INFORMATION_MESSAGE, null, options, options[0]);
+
+        if (x == 0) {
+            System.out.println("We are going to check the OR's. \n");
+        } else {
+            System.out.println("See you later!");
+            channel.shutdown();
+
+        }
+
+        HelloServiceGrpc.HelloServiceStub asyncClient = HelloServiceGrpc.newStub(channel);
+
+        CountDownLatch latch = new CountDownLatch(1);
+
+        StreamObserver<BookRequest> requestObserver = asyncClient.bookOR(new StreamObserver<BookResponse>() {
+            @Override
+            public void onNext(BookResponse value) {
+                //we get response from the server
+                //System.out.println("Received a response from the server");
+                System.out.println(value.getResult());
+
+            }
+
+            @Override
+            public void onError(Throwable t) {
+                //error from the server
+
+            }
+
+            @Override
+            public void onCompleted() {
+                //server is done sending message
+                latch.countDown();
+                ;
+
+            }
+        });
+
+        requestObserver.onNext(BookRequest.newBuilder()
+                .setBookR(BookOR.newBuilder()
+                        .setBooking("OR 01 is unavailable at the moment. \n")
+                        .build())
+                .build());
+
+        requestObserver.onNext(BookRequest.newBuilder()
+                .setBookR(BookOR.newBuilder()
+                        .setBooking("OR 02 is unavailable at the moment.\n")
+                        .build())
+                .build());
+
+        requestObserver.onNext(BookRequest.newBuilder()
+                .setBookR(BookOR.newBuilder()
+                        .setBooking("OR 03 is currently available.\n")
+                        .build())
+                .build());
+
+
+        //tell the server client is done sending data
+        requestObserver.onCompleted();
+
+        try {
+            latch.await(3L, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+
+        private void BidirectionalStreamingCall (ManagedChannel channel){
+
+            String [] options = {"Yes, please.", "No, I'm ok now."};
+            int x = JOptionPane.showOptionDialog(null, "Do you want to add a new patient?", "New Patient System",
+                    JOptionPane.DEFAULT_OPTION, JOptionPane.INFORMATION_MESSAGE, null, options, options[0]);
+
+            if (x == 0) {
+                System.out.println("Ok.\n");
+            } else {
+                System.out.println("See you later!");
+                channel.shutdown();
+
+            }
+
+            HelloServiceGrpc.HelloServiceStub asyncClient = HelloServiceGrpc.newStub(channel);
+
+            CountDownLatch latch = new CountDownLatch(1);
+
+            StreamObserver<NewRequest> requestObserver = asyncClient.newPatient(new StreamObserver<NewResponse>() {
+                @Override
+                public void onNext(NewResponse value) {
+                    System.out.println("Including new patient in the system.\n" + value.getResult());
+                }
+
+                @Override
+                public void onError(Throwable t) {
+                    latch.countDown();
+
+                }
+
+                @Override
+                public void onCompleted() {
+                    //System.out.println("All done.");
+                    latch.countDown();
+
+                }
+            });
+
+            String[] list =  {"Frank Sinatra, 82y, heart attack.", "Freddie Mercury, 45y, headache.",
+                    "Kurt Cobain, 27y, back pain.", "Chester Bennington, 41y, fever." };
+
+            Arrays.asList(list).forEach(
+                    name -> {
+                        requestObserver.onNext(NewRequest.newBuilder()
+                                .setNewR(NewPatient.newBuilder()
+                                        .setNewPatient(name))
+                                .build());
+
+                        try {
+                            Thread.sleep(100);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                    }
+            );
+
+
+            requestObserver.onCompleted();
+
+            try {
+                latch.await(3, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
+
+        }
+    }
+
