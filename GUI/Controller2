@@ -1,0 +1,81 @@
+
+import com.proto.hello.BloodRequest;
+import com.proto.hello.HeartRequest;
+import com.proto.hello.HelloServiceGrpc;
+import io.grpc.ManagedChannel;
+import io.grpc.ManagedChannelBuilder;
+import javafx.event.ActionEvent;
+import javafx.fxml.FXML;
+
+import javax.swing.table.TableColumn;
+import javax.swing.text.TableView;
+import java.awt.*;
+import java.io.IOException;
+
+public class Controller2 {
+
+    public javafx.scene.control.TextField txtInfo;
+    @FXML
+    private TableView tableView;
+    @FXML
+    private TableColumn Name;
+    @FXML
+    private TableColumn Age;
+    @FXML
+    private TableColumn Info;
+    @FXML
+    private TextArea areainfo;
+    @FXML
+    private Button btninfo;
+
+    private Main main;
+
+    public void backhome(ActionEvent event) throws IOException {
+        Main m = new Main();
+        m.changeScene("interface.fxml");
+
+    }
+
+    public void checkInfo(ActionEvent event) {
+        txtInfo.setText("Console is streaming!");
+        txtInfo.getText();
+
+        try {
+            ManagedChannel channel = ManagedChannelBuilder.forAddress("localhost", 50051)
+                    .usePlaintext()
+                    .build();
+
+            HelloServiceGrpc.HelloServiceBlockingStub bloodStub = HelloServiceGrpc.newBlockingStub(channel);
+            String bloodR = "";
+
+            bloodStub.bloodPressure(BloodRequest.newBuilder()
+                    .setBloodR(bloodR).build())
+                    .forEachRemaining(BloodResponse -> {
+                        String res3 = BloodResponse.getResult();
+                        System.out.println(res3);
+                    });
+
+
+            HelloServiceGrpc.HelloServiceBlockingStub heartStub = HelloServiceGrpc.newBlockingStub(channel);
+            String heartR = "";
+
+            heartStub.heartRate(HeartRequest.newBuilder()
+                    .setHeartR(heartR).build())
+                    .forEachRemaining(HeartResponse -> {
+                        String res4 = HeartResponse.getResult();
+                        System.out.println(res4);
+                    });
+
+
+        }catch (Exception ex){
+            ex.printStackTrace();
+        }
+    }
+
+
+    public void checkOR(ActionEvent event) {
+    }
+
+    public void newP(ActionEvent event) {
+    }
+}

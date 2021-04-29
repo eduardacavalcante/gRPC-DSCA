@@ -1,0 +1,31 @@
+public class Main extends Application {
+
+    private static Stage stg;
+
+    @Override
+    public void start(Stage primaryStage) throws IOException {
+            stg = primaryStage;
+            primaryStage.setResizable(false);
+            Parent root = FXMLLoader.load(getClass().getResource("interface.fxml"));
+            primaryStage.setTitle("Amazonas Hospital");
+            primaryStage.setScene(new Scene(root, 600, 400));
+            primaryStage.show();
+
+    }
+
+    //method to handle thread closing on stage closing
+
+    public static void main(String[] args) {
+        launch(args);
+    }
+
+
+    public void changeScene(String fxml) throws IOException {
+        Parent pane = FXMLLoader.load(getClass().getResource(fxml));
+        stg.getScene().setRoot(pane);
+    }
+
+
+
+
+}
